@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common.h"
+
 #include <string>
 #include <vector>
 
@@ -8,15 +10,15 @@
 using std::vector;
 using std::string;
 
-const int MSG_UNKNOWN  = 0;
-const int MSG_SIGN_IN  = 1;
-const int MSG_SIGN_OUT = 2;
-const int MSG_DENY     = 3;
-const int MSG_LIST     = 4;
-const int MSG_TEXT     = 5;
-const int MSG_ACK      = 6;
-const int MSG_GETTEXT  = 7;
-const int MSG_TEXTFIN  = 8;
+const uint32_t MSG_UNKNOWN  = 0;
+const uint32_t MSG_SIGN_IN  = 1;
+const uint32_t MSG_SIGN_OUT = 2;
+const uint32_t MSG_DENY     = 3;
+const uint32_t MSG_LIST     = 4;
+const uint32_t MSG_TEXT     = 5;
+const uint32_t MSG_ACK      = 6;
+const uint32_t MSG_GETTEXT  = 7;
+const uint32_t MSG_TEXTFIN  = 8;
 
 void PushToBuffer(const char* from, size_t size, vector<char>& buffer) {
     const char* byte = from;
@@ -25,13 +27,13 @@ void PushToBuffer(const char* from, size_t size, vector<char>& buffer) {
 }
 
 void PushToBuffer(const string& str, vector<char>& buffer) {
-    size_t size = str.size();
+    uint32_t size = str.size();
     PushToBuffer((const char*)&size, sizeof(size), buffer);
     PushToBuffer(&str[0], size, buffer);
 }
 
 string PopFromBuffer(const vector<char>& buffer, size_t& pos) {
-    size_t size = *((size_t *)&buffer[pos]);
+    uint32_t size = *((uint32_t*)&buffer[pos]);
     pos += sizeof(size);
     string result(&buffer[pos], &buffer[pos] + size);
     pos += size;
@@ -39,9 +41,9 @@ string PopFromBuffer(const vector<char>& buffer, size_t& pos) {
 }
 
 struct TMessageHeader {
-    int Tag;
-    int Id;
-    size_t Size;
+    uint32_t Tag;
+    uint32_t Id;
+    uint32_t Size;
 
     TMessageHeader(int tag = MSG_UNKNOWN, int id = 0)
         : Tag(tag)
@@ -64,7 +66,7 @@ struct TMessageHeader {
             return false;
         Tag = *((int *)&buffer[0]);
         Id = *((int *)&buffer[sizeof(Tag)]);
-        Size = *((size_t *)&buffer[sizeof(Tag) + sizeof(Id)]);
+        Size = *((uint32_t*)&buffer[sizeof(Tag) + sizeof(Id)]);
         return true;
     }
 };
@@ -166,7 +168,7 @@ struct TMessageList : public TMessage {
 
     virtual bool Write(int socketFD) {
         vector<char> buffer;
-        size_t size = Users.size();
+        uint32_t size = Users.size();
         PushToBuffer((const char*)&size, sizeof(size), buffer);
         for (size_t i = 0; i < size; ++i)
             PushToBuffer(Users[i], buffer);
@@ -182,7 +184,7 @@ struct TMessageList : public TMessage {
         if ((size_t)read(socketFD, &buffer[0], buffer.size()) != buffer.size())
             return false;
         size_t pos = 0;
-        size_t size = *((size_t*)&buffer[pos]);
+        uint32_t size = *((uint32_t*)&buffer[pos]);
         pos += sizeof(size);
         Users.resize(size);
         for (size_t i = 0; i < size; ++i)
