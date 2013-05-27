@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
             const vector<string>& users = client.GetUsers();
             cout << "=== Chat users ===\n";
             for (size_t i = 0; i < users.size(); ++i)
-                cout << users[i] << (((i & 3) && i + 1 < users.size()) ? "\t\t" : "\n");
+                cout << users[i] << ((((i + 1) & 3) && i + 1 < users.size()) ? "\t\t" : "\n");
             cout << '\n';
         } else if (line == ":to") {
             cout << "Select dude: ";
