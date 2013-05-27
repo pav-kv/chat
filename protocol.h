@@ -2,13 +2,13 @@
 
 #include "common.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include <unistd.h>
 
-using std::vector;
-using std::string;
+using namespace std;
 
 const uint32_t MSG_UNKNOWN  = 0;
 const uint32_t MSG_SIGN_IN  = 1;
@@ -194,31 +194,31 @@ struct TMessageList : public TMessage {
 };
 
 
-TMessage* PopMessage(int connectionFD) {
+auto_ptr<TMessage> PopMessage(int connectionFD) {
     TMessageHeader header;
+    auto_ptr<TMessage> msg(NULL);
     if (!header.Read(connectionFD))
-        return NULL;
+        return msg;
 
-    TMessage* msg = NULL;
     switch (header.Tag) {
     case MSG_SIGN_IN:
-        msg = new TMessageSignIn();
+        msg.reset(new TMessageSignIn());
         break;
 
     case MSG_SIGN_OUT: case MSG_ACK: case MSG_DENY: case MSG_GETTEXT: case MSG_TEXTFIN:
-        msg = new TMessage(header.Tag);
+        msg.reset(new TMessage(header.Tag));
         break;
 
     case MSG_TEXT:
-        msg = new TMessageText();
+        msg.reset(new TMessageText());
         break;
 
     case MSG_LIST:
-        msg = new TMessageList();
+        msg.reset(new TMessageList());
         break;
     }
-    if (msg && !msg->Read(header, connectionFD))
-        return NULL;
+    if (msg.get() && !msg->Read(header, connectionFD))
+        return auto_ptr<TMessage>(NULL);
 
     return msg;
 }

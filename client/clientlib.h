@@ -63,8 +63,8 @@ public:
         TMessageSignIn signIn(login, password);
         if (!signIn.Write(SocketFD))
             return false;
-        TMessage* msg = PopMessage(SocketFD); // FIXME: delete msg
-        if (!msg)
+        auto_ptr<TMessage> msg = PopMessage(SocketFD);
+        if (!msg.get())
             return false;
         if (msg->Header.Tag == MSG_ACK) {
             Login = login;
@@ -84,7 +84,7 @@ public:
     vector<string> GetUsers() {
         TMessageList list;
         list.Write(SocketFD);
-        list = *dynamic_cast<TMessageList*>(PopMessage(SocketFD));
+        list = *dynamic_cast<TMessageList*>(PopMessage(SocketFD).get());
         return list.Users;
     }
 
@@ -96,17 +96,15 @@ public:
         return msgText.Write(SocketFD);
     }
 
-    vector<TMessageText*> GetText() {
+    vector<TMessageText> GetText() {
         TMessage getText(MSG_GETTEXT);
         getText.Write(SocketFD);
-        TMessage* msg = NULL;
-        vector<TMessageText*> result;
-        while (msg = PopMessage(SocketFD)) {
-            if (msg->Header.Tag == MSG_TEXTFIN) {
-                delete msg;
+        auto_ptr<TMessage> msg(NULL);
+        vector<TMessageText> result;
+        while ((msg = PopMessage(SocketFD)).get()) {
+            if (msg->Header.Tag == MSG_TEXTFIN)
                 break;
-            }
-            result.push_back(dynamic_cast<TMessageText*>(msg));
+            result.push_back(*dynamic_cast<TMessageText*>(msg.get()));
         }
         return result;
     }

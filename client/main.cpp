@@ -49,12 +49,12 @@ int main(int argc, char** argv) {
         cout << "[" << login << " -> " << reciever << "] $ ";
         string line;
         getline(cin, line);
-        const vector<TMessageText*>& text = client.GetText();
+        const vector<TMessageText>& text = client.GetText();
         if (!text.empty()) {
             cout << "=== New messages ===\n";
             for (size_t i = 0; i < text.size(); ++i) {
-                cout << text[i]->Sender << ": ";
-                cout << text[i]->Text << '\n';
+                cout << text[i].Sender << ": ";
+                cout << text[i].Text << '\n';
             }
             cout << '\n';
         }

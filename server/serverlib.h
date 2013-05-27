@@ -125,8 +125,8 @@ public:
 
 private:
     void RunConnection(int connectionFD) {
-        TMessage* msg = PopMessage(connectionFD);
-        TMessageHeader* hdr = msg ? &msg->Header : NULL;
+        auto_ptr<TMessage> msg = PopMessage(connectionFD);
+        TMessageHeader* hdr = msg.get() ? &msg->Header : NULL;
 
         if (!hdr) {
             cerr << "Connection closed unexpectedly.\n";
@@ -141,7 +141,7 @@ private:
         }
 
         bool deny = false;
-        TMessageSignIn& signIn = *dynamic_cast<TMessageSignIn*>(msg);
+        TMessageSignIn& signIn = *dynamic_cast<TMessageSignIn*>(msg.get());
         string login = signIn.Login;
         unique_lock<mutex> lock(Mutex);
         TClient*& client = Clients[login];
@@ -165,12 +165,10 @@ private:
             cerr << "User " << login << " is now online.\n";
         }
 
-        delete msg;
-
         bool signedOut = false;
         while (!signedOut) {
             msg = PopMessage(connectionFD);
-            hdr = msg ? &msg->Header : NULL;
+            hdr = msg.get() ? &msg->Header : NULL;
             if (!hdr) {
                 cerr << "Connection with user " << login << " closed unexpectedly.\n";
                 break;
@@ -198,7 +196,7 @@ private:
 
             case MSG_TEXT:
                 {
-                    const TMessageText& msgText = *dynamic_cast<TMessageText*>(msg);
+                    const TMessageText& msgText = *dynamic_cast<TMessageText*>(msg.get());
                     lock.lock();
                     unordered_map<string, TClient*>::iterator it = Clients.find(msgText.Reciever);
                     lock.unlock();
@@ -216,7 +214,7 @@ private:
             case MSG_LIST:
                 {
                     cerr << "User " << login << " requested chat list.\n";
-                    TMessageList& msgList = *dynamic_cast<TMessageList*>(msg);
+                    TMessageList& msgList = *dynamic_cast<TMessageList*>(msg.get());
                     lock.lock();
                     for (unordered_map<string, TClient*>::const_iterator it = Clients.begin(); it != Clients.end(); ++it)
                         msgList.Users.push_back(it->first);
