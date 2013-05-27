@@ -73,6 +73,7 @@ class TServer {
 public:
     TServer(int port = DEFAULT_PORT)
         : Port(port)
+        , NewThreadId(0)
     {
     }
 
@@ -116,7 +117,9 @@ public:
             }
             cerr << "Accepted connection with " << inet_ntoa(clientAddr.sin_addr) << ".\n";
 
-            new thread(&TServer::RunConnection, this, connectionFD); // FIXME: delete thread
+            unique_lock<mutex> lock(Mutex);
+            Threads[NewThreadId] = new thread(&TServer::RunConnection, this, connectionFD, NewThreadId);
+            ++NewThreadId;
         }
 
         close(socketFD);
@@ -124,20 +127,25 @@ public:
     }
 
 private:
-    void RunConnection(int connectionFD) {
+    void RunConnection(int connectionFD, int threadId) {
         auto_ptr<TMessage> msg = PopMessage(connectionFD);
         TMessageHeader* hdr = msg.get() ? &msg->Header : NULL;
 
+        #define CloseConnection() \
+            do { \
+                Threads.erase(threadId); \
+                close(connectionFD); \
+                return; \
+            } while (0)
+
         if (!hdr) {
             cerr << "Connection closed unexpectedly.\n";
-            close(connectionFD);
             return;
         }
         if (hdr->Tag != MSG_SIGN_IN) {
             cerr << "Protocol violation.\n";
             shutdown(connectionFD, SHUT_RDWR);
-            close(connectionFD);
-            return;
+            CloseConnection();
         }
 
         bool deny = false;
@@ -156,8 +164,7 @@ private:
             denyMsg.Write(connectionFD);
             cerr << "Denied user.\n";
             shutdown(connectionFD, SHUT_RDWR);
-            close(connectionFD);
-            return;
+            CloseConnection();
         } else {
             TMessage ack(MSG_ACK);
             ack.Write(connectionFD);
@@ -229,11 +236,11 @@ private:
             }
         }
 
-        shutdown(connectionFD, SHUT_RDWR);
-        close(connectionFD);
-
         client->SetStatus(false);
         cerr << "User " << login << " is now offline.\n";
+
+        shutdown(connectionFD, SHUT_RDWR);
+        CloseConnection();
     }
 
 private:
@@ -241,5 +248,7 @@ private:
 
     int Port;
     unordered_map<string, TClient*> Clients;
+    int NewThreadId;
+    unordered_map<int, thread*> Threads;
 };
 
