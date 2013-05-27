@@ -32,7 +32,8 @@ int main(int argc, char** argv) {
     cin >> ip >> port;
 
     TClient client(ip, port);
-    client.Connect();
+    if (!client.Connect())
+        return 0;
 
     string login, pass;
     cout << "Login: ";
@@ -41,7 +42,11 @@ int main(int argc, char** argv) {
     cin >> pass;
     string fictive;
     getline(cin, fictive);
-    client.SignIn(login, pass);
+    if (!client.SignIn(login, pass)) {
+        cout << "Failed to sign in.\n";
+        client.SignOut();
+        return 0;
+    }
 
     PrintHelp();
     string reciever("server");
