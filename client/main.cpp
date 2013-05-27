@@ -13,6 +13,16 @@
 #include <signal.h>
 using namespace std;
 
+void PrintHelp() {
+    cout
+        << "=== Help ===\n"
+        << " <enter>   - check for incoming messages\n"
+        << " :h        - help\n"
+        << " :ls       - display chat users list\n"
+        << " :to       - switch messages reciever\n"
+        << " :q        - quit\n\n";
+}
+
 int main(int argc, char** argv) {
     signal(SIGPIPE, SIG_IGN);
 
@@ -29,8 +39,11 @@ int main(int argc, char** argv) {
     cin >> login;
     cout << "Password: ";
     cin >> pass;
+    string fictive;
+    getline(cin, fictive);
     client.SignIn(login, pass);
 
+    PrintHelp();
     string reciever("server");
     while (true) {
         cout << "[" << login << " -> " << reciever << "] $ ";
@@ -43,6 +56,7 @@ int main(int argc, char** argv) {
                 cout << text[i]->Sender << ": ";
                 cout << text[i]->Text << '\n';
             }
+            cout << '\n';
         }
 
         if (line.empty())
@@ -54,15 +68,16 @@ int main(int argc, char** argv) {
             cout << "=== Chat users ===\n";
             for (size_t i = 0; i < users.size(); ++i)
                 cout << users[i] << (((i & 3) && i + 1 < users.size()) ? "\t\t" : "\n");
-            continue;
-        }
-        if (line == ":to") {
-            cout << "Dude: ";
+            cout << '\n';
+        } else if (line == ":to") {
+            cout << "Select dude: ";
             cin >> reciever;
-            continue;
+            getline(cin, fictive);
+        } else if (line == ":h") {
+            PrintHelp();
+        } else {
+            client.SendText(line, reciever);
         }
-
-        client.SendText(line, reciever);
     }
 
     client.SignOut();
