@@ -83,7 +83,8 @@ public:
 
     vector<string> GetUsers() {
         TMessageList list;
-        list.Write(SocketFD);
+        if (!list.Write(SocketFD))
+            return list.Users;
         list = *dynamic_cast<TMessageList*>(PopMessage(SocketFD).get());
         return list.Users;
     }

@@ -50,7 +50,16 @@ int main(int argc, char** argv) {
 
     PrintHelp();
     string reciever("server");
+    bool reconnect = false;
     while (true) {
+        while (reconnect) {
+            cout << "Server died. Reconnect in 3 seconds.\n";
+            sleep(3);
+            client.SignOut();
+            client.Connect();
+            reconnect = !client.SignIn(login, pass);
+        }
+
         cout << "[" << login << " -> " << reciever << "] $ ";
         string line;
         getline(cin, line);
@@ -81,7 +90,7 @@ int main(int argc, char** argv) {
         } else if (line == ":h") {
             PrintHelp();
         } else {
-            client.SendText(line, reciever);
+            reconnect = !client.SendText(line, reciever);
         }
     }
 
