@@ -68,6 +68,7 @@ public:
             return false;
         if (msg->Header.Tag == MSG_ACK) {
             Login = login;
+            Pass = password;
             cerr << "Signed in as " << login << '\n';
             return true;
         }
@@ -81,33 +82,49 @@ public:
         close(SocketFD);
     }
 
+    void Reconnect() {
+        bool reconnect = true;
+        while (reconnect) {
+            cerr << "Server died. Reconnect in 3 seconds.\n";
+            sleep(3);
+            SignOut();
+            Connect();
+            reconnect = !SignIn(Login, Pass);
+        }
+    }
+
     vector<string> GetUsers() {
         TMessageList list;
-        if (!list.Write(SocketFD))
-            return list.Users;
+        while (!list.Write(SocketFD))
+            Reconnect();
         list = *dynamic_cast<TMessageList*>(PopMessage(SocketFD).get());
         return list.Users;
     }
 
-    bool SendText(const string& text, const string& reciever) {
+    void SendText(const string& text, const string& reciever) {
         TMessageText msgText;
         msgText.Sender = Login;
         msgText.Reciever = reciever;
         msgText.Text = text;
-        return msgText.Write(SocketFD);
+        while (!msgText.Write(SocketFD))
+            Reconnect();
     }
 
     vector<TMessageText> GetText() {
         TMessage getText(MSG_GETTEXT);
-        getText.Write(SocketFD);
+        while (!getText.Write(SocketFD))
+            Reconnect();
         auto_ptr<TMessage> msg(NULL);
         vector<TMessageText> result;
+        bool finished = false;
         while ((msg = PopMessage(SocketFD)).get()) {
-            if (msg->Header.Tag == MSG_TEXTFIN)
+            if (msg->Header.Tag == MSG_TEXTFIN) {
+                finished = true;
                 break;
+            }
             result.push_back(*dynamic_cast<TMessageText*>(msg.get()));
         }
-        return result;
+        return finished ? result : GetText();
     }
 
 private:
@@ -116,5 +133,6 @@ private:
 
     int SocketFD;
     string Login;
+    string Pass;
 };
 

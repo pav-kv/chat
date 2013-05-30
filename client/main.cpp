@@ -50,19 +50,13 @@ int main(int argc, char** argv) {
 
     PrintHelp();
     string reciever("server");
-    bool reconnect = false;
     while (true) {
-        while (reconnect) {
-            cout << "Server died. Reconnect in 3 seconds.\n";
-            sleep(3);
-            client.SignOut();
-            client.Connect();
-            reconnect = !client.SignIn(login, pass);
-        }
-
         cout << "[" << login << " -> " << reciever << "] $ ";
         string line;
         getline(cin, line);
+        if (line == ":q")
+            break;
+
         const vector<TMessageText>& text = client.GetText();
         if (!text.empty()) {
             cout << "=== New messages ===\n";
@@ -75,8 +69,6 @@ int main(int argc, char** argv) {
 
         if (line.empty())
             continue;
-        if (line == ":q")
-            break;
         if (line == ":ls") {
             const vector<string>& users = client.GetUsers();
             cout << "=== Chat users ===\n";
@@ -90,7 +82,7 @@ int main(int argc, char** argv) {
         } else if (line == ":h") {
             PrintHelp();
         } else {
-            reconnect = !client.SendText(line, reciever);
+            client.SendText(line, reciever);
         }
     }
 
