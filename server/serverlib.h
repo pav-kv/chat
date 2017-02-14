@@ -128,7 +128,7 @@ public:
 
 private:
     void RunConnection(int connectionFD, int threadId) {
-        auto_ptr<TMessage> msg = PopMessage(connectionFD);
+        unique_ptr<TMessage> msg(PopMessage(connectionFD).release());
         TMessageHeader* hdr = msg.get() ? &msg->Header : NULL;
 
         #define CloseConnection() \

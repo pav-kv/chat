@@ -63,7 +63,7 @@ public:
         TMessageSignIn signIn(login, password);
         if (!signIn.Write(SocketFD))
             return false;
-        auto_ptr<TMessage> msg = PopMessage(SocketFD);
+        unique_ptr<TMessage> msg(PopMessage(SocketFD).release());
         if (!msg.get())
             return false;
         if (msg->Header.Tag == MSG_ACK) {
@@ -114,10 +114,15 @@ public:
         TMessage getText(MSG_GETTEXT);
         while (!getText.Write(SocketFD))
             Reconnect();
-        auto_ptr<TMessage> msg(NULL);
+        unique_ptr<TMessage> msg;
         vector<TMessageText> result;
         bool finished = false;
-        while ((msg = PopMessage(SocketFD)).get()) {
+        while (true) {
+            msg.reset(PopMessage(SocketFD).release());
+            if (msg.get() == NULL) {
+                cerr << "PopMessage() get NULL.\n";
+                break;
+            }
             if (msg->Header.Tag == MSG_TEXTFIN) {
                 finished = true;
                 break;
